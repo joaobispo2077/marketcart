@@ -45,43 +45,39 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
 
   const addProduct = async (productId: number) => {
     try {
-      const response = await api.get(`/stock/${productId}`);
-
-      const stockProduct = response.data as Stock;
-
-      if (stockProduct.amount === 0) {
-        throw new Error('Product out of stock');
-      }
-
-      // await api.patch(`/stock/${productId}`, { amount: stockProduct.amount - 1 });
 
       const responseProduct = await api.get(`/products/${productId}`);
       const product = responseProduct.data as Product;
 
-      console.log(stockProduct);
-      setCart((previousCart) => {
-        const isProductAlreadyInCartIndex = cart.findIndex(product => product.id === productId);
-        
-        const isNewProduct = isProductAlreadyInCartIndex === -1;
-        
-        if (isNewProduct) {
-          const newProductWithInitialAmount = Object.assign(product, {
-            amount: 1,
-          });
+      const isProductAlreadyInCartIndex = cart.findIndex(product => product.id === productId);
+      
+      const isNewProduct = isProductAlreadyInCartIndex === -1;
 
+      if (isNewProduct) {
+        const response = await api.get(`/stock/${productId}`);
+
+        const stockProduct = response.data as Stock;
+  
+        if (stockProduct.amount === 0) {
+          throw new Error('Product out of stock');
+        }
+
+        const newProductWithInitialAmount = Object.assign(product, {
+          amount: 1,
+        });
+
+        setCart(previousCart => {
           const newCart =  previousCart.concat(newProductWithInitialAmount);
 
           persistCart(newCart);
-          return newCart;
-        } else  {
-          previousCart[isProductAlreadyInCartIndex].amount += 1;
-          const newCart = [...previousCart];
 
-          persistCart(newCart);
           return newCart;
-        }      
-
-      });
+        });
+  
+  
+      } else {
+        updateProductAmount({ productId, amount: cart[isProductAlreadyInCartIndex].amount + 1 });
+      }
 
       toast.success('Product added to cart');
     } catch (error: any) {
@@ -96,12 +92,21 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
 
   const removeProduct = (productId: number) => {
     try {
-      setCart((previousCart) => {
-        const newCart = previousCart.filter(product => product.id !== productId);
 
-        persistCart(newCart);
-        return newCart;
-      });
+      const hasProductInCart = cart.find(product => product.id === productId);
+
+      if (hasProductInCart) {
+
+        setCart((previousCart) => {
+          const newCart = previousCart.filter(product => product.id !== productId);
+  
+          persistCart(newCart);
+          return newCart;
+        });
+      } else {
+        throw new Error('Product not found');
+      }
+      
 
       toast.success('Product removed from cart');      
     } catch {

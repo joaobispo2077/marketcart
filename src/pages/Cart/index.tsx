@@ -64,7 +64,7 @@ const Cart = (): JSX.Element => {
             </td>
             <td>
               <strong>{product.title}</strong>
-              <span>{product.price}</span>
+              <span>{formatPrice(product.price)}</span>
             </td>
             <td>
               <div>
@@ -92,7 +92,7 @@ const Cart = (): JSX.Element => {
               </div>
             </td>
             <td>
-              <strong>{product.price * product.amount}</strong>
+              <strong>{formatPrice(product.price * product.amount)}</strong>
             </td>
             <td>
               <button
