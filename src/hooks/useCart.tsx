@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { createContext, ReactNode, useContext, useState } from 'react';
 import { toast } from 'react-toastify';
 import { api } from '../services/api';
@@ -46,26 +47,38 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
     try {
       const response = await api.get(`/stock/${productId}`);
 
-      const product = response.data as Product;
+      const stockProduct = response.data as Stock;
 
-      if (product.amount === 0) {
+      if (stockProduct.amount === 0) {
         throw new Error('Product out of stock');
       }
 
-      
+      // await api.patch(`/stock/${productId}`, { amount: stockProduct.amount - 1 });
+
+      const responseProduct = await api.get(`/products/${productId}`);
+      const product = responseProduct.data as Product;
+
+      console.log(stockProduct);
       setCart((previousCart) => {
-        const isProductAlreadyInCartIndex = previousCart.findIndex(product => product.id === productId);
+        const isProductAlreadyInCartIndex = cart.findIndex(product => product.id === productId);
         
-        const isNewProduct = isProductAlreadyInCartIndex >= 0;
+        const isNewProduct = isProductAlreadyInCartIndex === -1;
         
         if (isNewProduct) {
-          const newCart =  previousCart.concat(product);
+          const newProductWithInitialAmount = Object.assign(product, {
+            amount: 1,
+          });
+
+          const newCart =  previousCart.concat(newProductWithInitialAmount);
+
           persistCart(newCart);
-         return newCart;
+          return newCart;
         } else  {
           previousCart[isProductAlreadyInCartIndex].amount += 1;
-          persistCart(previousCart);
-          return previousCart;
+          const newCart = [...previousCart];
+
+          persistCart(newCart);
+          return newCart;
         }      
 
       });
@@ -75,9 +88,9 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
       if (error.message === 'Product out of stock') {
         toast.error('Quantidade solicitada fora de estoque');
       } else {
-        toast.error('Ocorreu um problema ao adicionar o produto no carrinho');
-
+        toast.error('Erro na adição do produto');
       }
+
     }
   };
 
